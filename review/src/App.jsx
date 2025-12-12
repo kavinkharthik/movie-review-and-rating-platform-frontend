@@ -1,56 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
 
 export default function App() {
-  const [status, setStatus] = useState("checking");
-
-  useEffect(() => {
-    axios.get("http://localhost:5000/api/health")
-      .then(() => setStatus("ok"))
-      .catch(() => setStatus("down"));
-  }, []);
-
-  return (
-    <div className="App" style={{ maxWidth: 900, margin: "0 auto", padding: 20 }}>
-      <h1>Review App</h1>
-      {status === "checking" && <p>Checking backend...</p>}
-      {status === "ok" && <p style={{ color: "green" }}>Backend reachable — UI ready.</p>}
-      {status === "down" && <p style={{ color: "crimson" }}>Backend unreachable. Start the backend on port 5000.</p>}
-      <p>Open the app pages and use the UI. This file was repaired to fix a JSX syntax error.</p>
-    </div>
-  );
-}
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import "./App.css";
-
-// Clean, minimal App component — focuses on correct JSX structure
-export default function App() {
-  const [movies, setMovies] = useState([]);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    // keep load simple for now; backend provides /api/health
-    axios.get("http://localhost:5000/api/health")
-      .then(() => setMovies([]))
-      .catch((e) => setError("Backend unreachable"));
-  }, []);
-
-  return (
-    <div className="App" style={{ maxWidth: 900, margin: "0 auto", padding: 20 }}>
-      <h1>Review App (UI fixed)</h1>
-      {error && <div style={{ color: "crimson" }}>{error}</div>}
-      <p>Open the console or interact with the app once the backend is running.</p>
-    </div>
-  );
-}
-
-import { useEffect, useState } from "react";
-import axios from "axios";
-import "./App.css";
-
-function App() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -67,147 +19,47 @@ function App() {
   const [avgRating, setAvgRating] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
 
-  // review form states
   const [myRating, setMyRating] = useState(5);
   const [myComment, setMyComment] = useState("");
   const [editingReviewId, setEditingReviewId] = useState(null);
 
-  // helper axios instance that reads token fresh before each request
-  const api = axios.create({ baseURL: "http://localhost:5000/api" });
-  api.interceptors.request.use(cfg => {
-    return (
-      <div className="App" style={{ maxWidth: 900, margin: "0 auto", padding: 20 }}>
-        <h1>Movie Rating App</h1>
+  // 🔥 Axios instance with env variable
+  const API = axios.create({
+    baseURL: import.meta.env.VITE_API_URL
+  });
 
-        {!isLoggedIn ? (
-          <div style={{ display: "flex", gap: 40 }}>
-            <div style={{ flex: 1 }}>
-              <h2>Login</h2>
-              <form onSubmit={handleLogin}>
-                <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required />
-                <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-                <button type="submit">Login</button>
-              </form>
-            </div>
+  // attach JWT token
+  API.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  });
 
-            <div style={{ flex: 1 }}>
-              <h2>Register</h2>
-              <form onSubmit={handleRegister}>
-                <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required />
-                <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-                <button type="submit">Register</button>
-              </form>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2>Movies</h2>
-              <div>
-                <button onClick={handleLogout}>Logout</button>
-              </div>
-            </div>
-
-            <form onSubmit={addMovie} style={{ marginBottom: 20 }}>
-              <input placeholder="Title" value={newTitle} onChange={e => setNewTitle(e.target.value)} required />
-              <input placeholder="Year" value={newYear} onChange={e => setNewYear(e.target.value)} />
-              <input placeholder="Genre" value={newGenre} onChange={e => setNewGenre(e.target.value)} />
-              <input placeholder="Description" value={newDesc} onChange={e => setNewDesc(e.target.value)} />
-              <button type="submit">Add Movie</button>
-            </form>
-
-            <div style={{ display: "flex", gap: 20 }}>
-              <div style={{ flex: 1 }}>
-                <ul>
-                  {movies.map(m => (
-                    <li key={m._id} style={{ marginBottom: 8 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                          <strong style={{ cursor: "pointer" }} onClick={() => selectMovie(m)}>
-                            {m.title} {m.year ? `(${m.year})` : ""}
-                          </strong>
-                          <div style={{ fontSize: 12, color: "#666" }}>{m.genre} — {m.description}</div>
-                        </div>
-
-                        <div>
-                          <button onClick={() => selectMovie(m)} style={{ marginRight: 8 }}>Open</button>
-                          <button onClick={() => deleteMovie(m._id)}>Delete</button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div style={{ flex: 1.2, borderLeft: "1px solid #ddd", paddingLeft: 20 }}>
-                {!selectedMovie ? (
-                  <div>Select a movie to see reviews and rating.</div>
-                ) : (
-                  <div>
-                    <h3>{selectedMovie.title} {selectedMovie.year ? `(${selectedMovie.year})` : ""}</h3>
-                    <p style={{ marginTop: 0 }}>{selectedMovie.description}</p>
-
-                    <p><strong>Average:</strong> ⭐ {avgRating.toFixed(1)} ({reviewCount} reviews)</p>
-
-                    <h4>{editingReviewId ? "Edit Your Review" : "Add Review"}</h4>
-                    <form onSubmit={submitReview} style={{ marginBottom: 12 }}>
-                      <select value={myRating} onChange={e => setMyRating(Number(e.target.value))}>
-                        <option value={1}>1 ⭐</option>
-                        <option value={2}>2 ⭐</option>
-                        <option value={3}>3 ⭐</option>
-                        <option value={4}>4 ⭐</option>
-                        <option value={5}>5 ⭐</option>
-                      </select>
-                      <input placeholder="Comment" value={myComment} onChange={e => setMyComment(e.target.value)} />
-                      <button type="submit">{editingReviewId ? "Update" : "Submit"}</button>
-                      {editingReviewId && <button type="button" onClick={() => { setEditingReviewId(null); setMyRating(5); setMyComment(""); }}>Cancel</button>}
-                    </form>
-
-                    <h4>Reviews</h4>
-                    <ul>
-                      {reviews.length === 0 && <li>No reviews yet.</li>}
-                      {reviews.map(r => (
-                        <li key={r._id} style={{ marginBottom: 8 }}>
-                          <div>
-                            <strong>⭐ {r.rating}</strong> — {r.comment}
-                          </div>
-                          <div style={{ fontSize: 12, marginTop: 4 }}>
-                            <button onClick={() => startEdit(r)} style={{ marginRight: 8 }}>Edit</button>
-                            <button onClick={() => deleteReview(r._1d)}>Delete</button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  export default App;
-  // Edit review: populate form
-  const startEdit = (review) => {
-    setEditingReviewId(review._id);
-    setMyRating(review.rating);
-    setMyComment(review.comment || "");
-  };
-
-  // Delete review
-  const deleteReview = async (id) => {
-    if (!window.confirm("Delete your review?")) return;
+  // --------------------------
+  // AUTH FUNCTIONS
+  // --------------------------
+  const handleRegister = async (e) => {
+    e.preventDefault();
     try {
-      await api.delete(`/reviews/${id}`);
-      await selectMovie(selectedMovie);
+      await API.post("/auth/register", { username, password });
+      alert("Registration successful!");
     } catch (err) {
-      alert(err.response?.data || "Delete review failed");
+      alert(err.response?.data || "Registration failed");
     }
   };
 
-  // Logout
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await API.post("/auth/login", { username, password });
+      localStorage.setItem("token", res.data.token);
+      setIsLoggedIn(true);
+      loadMovies();
+    } catch (err) {
+      alert(err.response?.data || "Login failed");
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
@@ -215,18 +67,118 @@ function App() {
     setReviews([]);
   };
 
+  // --------------------------
+  // MOVIE FUNCTIONS
+  // --------------------------
+  const loadMovies = async () => {
+    const res = await API.get("/movies");
+    setMovies(res.data);
+  };
+
+  const addMovie = async (e) => {
+    e.preventDefault();
+    try {
+      await API.post("/movies", {
+        title: newTitle,
+        year: newYear,
+        genre: newGenre,
+        description: newDesc
+      });
+      setNewTitle("");
+      setNewYear("");
+      setNewGenre("");
+      setNewDesc("");
+      loadMovies();
+    } catch (err) {
+      alert("Error adding movie");
+    }
+  };
+
+  const deleteMovie = async (id) => {
+    if (!window.confirm("Delete this movie?")) return;
+    await API.delete(`/movies/${id}`);
+    loadMovies();
+    setSelectedMovie(null);
+  };
+
+  const selectMovie = async (movie) => {
+    setSelectedMovie(movie);
+    loadMovieReviews(movie._id);
+  };
+
+  // --------------------------
+  // REVIEW FUNCTIONS
+  // --------------------------
+  const loadMovieReviews = async (movieId) => {
+    const res = await API.get(`/reviews/movie/${movieId}`);
+    setReviews(res.data.reviews);
+    setAvgRating(res.data.avg);
+    setReviewCount(res.data.count);
+  };
+
+  const submitReview = async (e) => {
+    e.preventDefault();
+
+    try {
+      if (editingReviewId) {
+        await API.put(`/reviews/${editingReviewId}`, {
+          rating: myRating,
+          comment: myComment
+        });
+      } else {
+        await API.post("/reviews", {
+          movieId: selectedMovie._id,
+          rating: myRating,
+          comment: myComment
+        });
+      }
+
+      setMyRating(5);
+      setMyComment("");
+      setEditingReviewId(null);
+
+      loadMovieReviews(selectedMovie._id);
+
+    } catch (err) {
+      alert("Review failed");
+    }
+  };
+
+  const deleteReview = async (id) => {
+    if (!window.confirm("Delete this review?")) return;
+    await API.delete(`/reviews/${id}`);
+    loadMovieReviews(selectedMovie._id);
+  };
+
+  const startEdit = (review) => {
+    setEditingReviewId(review._id);
+    setMyRating(review.rating);
+    setMyComment(review.comment);
+  };
+
+  // --------------------------
+  // CHECK BACKEND HEALTH AT START
+  // --------------------------
+  useEffect(() => {
+    API.get("/api/health").catch(() => {});
+    if (localStorage.getItem("token")) {
+      setIsLoggedIn(true);
+      loadMovies();
+    }
+  }, []);
+
   return (
     <div className="App" style={{ maxWidth: 900, margin: "0 auto", padding: 20 }}>
-      <h1>Movie Rating App</h1>
+      <h1>🎬 Movie Rating App</h1>
 
-      {/* AUTH */}
+      {/* ---------------- AUTH UI ---------------- */}
       {!isLoggedIn ? (
         <div style={{ display: "flex", gap: 40 }}>
           <div style={{ flex: 1 }}>
             <h2>Login</h2>
             <form onSubmit={handleLogin}>
-              <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required />
-              <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+              <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+              <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
               <button type="submit">Login</button>
             </form>
           </div>
@@ -234,44 +186,41 @@ function App() {
           <div style={{ flex: 1 }}>
             <h2>Register</h2>
             <form onSubmit={handleRegister}>
-              <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required />
-              <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+              <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+              <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
               <button type="submit">Register</button>
             </form>
           </div>
         </div>
       ) : (
         <>
+          {/* ---------------- MOVIE FORM ---------------- */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h2>Movies</h2>
-            <div>
-              <button onClick={handleLogout}>Logout</button>
-            </div>
+            <button onClick={handleLogout}>Logout</button>
           </div>
 
-          {/* ADD MOVIE */}
           <form onSubmit={addMovie} style={{ marginBottom: 20 }}>
-            <input placeholder="Title" value={newTitle} onChange={e => setNewTitle(e.target.value)} required />
-            <input placeholder="Year" value={newYear} onChange={e => setNewYear(e.target.value)} />
-            <input placeholder="Genre" value={newGenre} onChange={e => setNewGenre(e.target.value)} />
-            <input placeholder="Description" value={newDesc} onChange={e => setNewDesc(e.target.value)} />
+            <input placeholder="Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} required />
+            <input placeholder="Year" value={newYear} onChange={(e) => setNewYear(e.target.value)} />
+            <input placeholder="Genre" value={newGenre} onChange={(e) => setNewGenre(e.target.value)} />
+            <input placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
             <button type="submit">Add Movie</button>
           </form>
 
+          {/* ---------------- MOVIE LIST ---------------- */}
           <div style={{ display: "flex", gap: 20 }}>
-            {/* MOVIE LIST */}
             <div style={{ flex: 1 }}>
               <ul>
-                {movies.map(m => (
+                {movies.map((m) => (
                   <li key={m._id} style={{ marginBottom: 8 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
                       <div>
                         <strong style={{ cursor: "pointer" }} onClick={() => selectMovie(m)}>
                           {m.title} {m.year ? `(${m.year})` : ""}
                         </strong>
                         <div style={{ fontSize: 12, color: "#666" }}>{m.genre} — {m.description}</div>
                       </div>
-
                       <div>
                         <button onClick={() => selectMovie(m)} style={{ marginRight: 8 }}>Open</button>
                         <button onClick={() => deleteMovie(m._id)}>Delete</button>
@@ -282,39 +231,44 @@ function App() {
               </ul>
             </div>
 
-            {/* DETAILS + REVIEWS */}
+            {/* ---------------- MOVIE DETAILS + REVIEWS ---------------- */}
             <div style={{ flex: 1.2, borderLeft: "1px solid #ddd", paddingLeft: 20 }}>
               {!selectedMovie ? (
-                <div>Select a movie to see reviews and rating.</div>
+                <div>Select a movie to view and add reviews.</div>
               ) : (
                 <>
                   <h3>{selectedMovie.title} {selectedMovie.year ? `(${selectedMovie.year})` : ""}</h3>
-                  <p style={{ marginTop: 0 }}>{selectedMovie.description}</p>
+                  <p>{selectedMovie.description}</p>
 
-                  <p><strong>Average:</strong> ⭐ {avgRating.toFixed(1)} ({reviewCount} reviews)</p>
+                  <p><strong>Average Rating:</strong> ⭐ {avgRating.toFixed(1)} ({reviewCount} reviews)</p>
 
                   <h4>{editingReviewId ? "Edit Your Review" : "Add Review"}</h4>
                   <form onSubmit={submitReview} style={{ marginBottom: 12 }}>
-                    <select value={myRating} onChange={e => setMyRating(Number(e.target.value))}>
+                    <select value={myRating} onChange={(e) => setMyRating(Number(e.target.value))}>
                       <option value={1}>1 ⭐</option>
                       <option value={2}>2 ⭐</option>
                       <option value={3}>3 ⭐</option>
                       <option value={4}>4 ⭐</option>
                       <option value={5}>5 ⭐</option>
                     </select>
-                    <input placeholder="Comment" value={myComment} onChange={e => setMyComment(e.target.value)} />
+
+                    <input placeholder="Comment" value={myComment} onChange={(e) => setMyComment(e.target.value)} />
                     <button type="submit">{editingReviewId ? "Update" : "Submit"}</button>
-                    {editingReviewId && <button type="button" onClick={() => { setEditingReviewId(null); setMyRating(5); setMyComment(""); }}>Cancel</button>}
+
+                    {editingReviewId && (
+                      <button type="button" onClick={() => { setEditingReviewId(null); setMyRating(5); setMyComment(""); }}>
+                        Cancel
+                      </button>
+                    )}
                   </form>
 
                   <h4>Reviews</h4>
                   <ul>
                     {reviews.length === 0 && <li>No reviews yet.</li>}
-                    {reviews.map(r => (
+
+                    {reviews.map((r) => (
                       <li key={r._id} style={{ marginBottom: 8 }}>
-                        <div>
-                          <strong>⭐ {r.rating}</strong> — {r.comment}
-                        </div>
+                        <div><strong>⭐ {r.rating}</strong> — {r.comment}</div>
                         <div style={{ fontSize: 12, marginTop: 4 }}>
                           <button onClick={() => startEdit(r)} style={{ marginRight: 8 }}>Edit</button>
                           <button onClick={() => deleteReview(r._id)}>Delete</button>
@@ -326,9 +280,9 @@ function App() {
               )}
             </div>
           </div>
-        )}
+        </>
+      )}
+
     </div>
   );
 }
-
-export default App;
