@@ -23,12 +23,12 @@ export default function App() {
   const [myComment, setMyComment] = useState("");
   const [editingReviewId, setEditingReviewId] = useState(null);
 
-  // 🔥 Axios instance with env variable
+  // 🔥 Axios instance using Vite environment variable
   const API = axios.create({
-    baseURL: import.meta.env.VITE_API_URL
+    baseURL: import.meta.env.VITE_API_URL,
   });
 
-  // attach JWT token
+  // Attach JWT token before every request
   API.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -82,7 +82,7 @@ export default function App() {
         title: newTitle,
         year: newYear,
         genre: newGenre,
-        description: newDesc
+        description: newDesc,
       });
       setNewTitle("");
       setNewYear("");
@@ -118,27 +118,24 @@ export default function App() {
 
   const submitReview = async (e) => {
     e.preventDefault();
-
     try {
       if (editingReviewId) {
         await API.put(`/reviews/${editingReviewId}`, {
           rating: myRating,
-          comment: myComment
+          comment: myComment,
         });
       } else {
         await API.post("/reviews", {
           movieId: selectedMovie._id,
           rating: myRating,
-          comment: myComment
+          comment: myComment,
         });
       }
 
       setMyRating(5);
       setMyComment("");
       setEditingReviewId(null);
-
       loadMovieReviews(selectedMovie._id);
-
     } catch (err) {
       alert("Review failed");
     }
@@ -157,7 +154,7 @@ export default function App() {
   };
 
   // --------------------------
-  // CHECK BACKEND HEALTH AT START
+  // CHECK BACKEND ON LOAD
   // --------------------------
   useEffect(() => {
     API.get("/api/health").catch(() => {});
@@ -171,7 +168,6 @@ export default function App() {
     <div className="App" style={{ maxWidth: 900, margin: "0 auto", padding: 20 }}>
       <h1>🎬 Movie Rating App</h1>
 
-      {/* ---------------- AUTH UI ---------------- */}
       {!isLoggedIn ? (
         <div style={{ display: "flex", gap: 40 }}>
           <div style={{ flex: 1 }}>
@@ -194,7 +190,6 @@ export default function App() {
         </div>
       ) : (
         <>
-          {/* ---------------- MOVIE FORM ---------------- */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h2>Movies</h2>
             <button onClick={handleLogout}>Logout</button>
@@ -208,7 +203,6 @@ export default function App() {
             <button type="submit">Add Movie</button>
           </form>
 
-          {/* ---------------- MOVIE LIST ---------------- */}
           <div style={{ display: "flex", gap: 20 }}>
             <div style={{ flex: 1 }}>
               <ul>
@@ -219,7 +213,9 @@ export default function App() {
                         <strong style={{ cursor: "pointer" }} onClick={() => selectMovie(m)}>
                           {m.title} {m.year ? `(${m.year})` : ""}
                         </strong>
-                        <div style={{ fontSize: 12, color: "#666" }}>{m.genre} — {m.description}</div>
+                        <div style={{ fontSize: 12, color: "#666" }}>
+                          {m.genre} — {m.description}
+                        </div>
                       </div>
                       <div>
                         <button onClick={() => selectMovie(m)} style={{ marginRight: 8 }}>Open</button>
@@ -231,7 +227,6 @@ export default function App() {
               </ul>
             </div>
 
-            {/* ---------------- MOVIE DETAILS + REVIEWS ---------------- */}
             <div style={{ flex: 1.2, borderLeft: "1px solid #ddd", paddingLeft: 20 }}>
               {!selectedMovie ? (
                 <div>Select a movie to view and add reviews.</div>
@@ -256,7 +251,11 @@ export default function App() {
                     <button type="submit">{editingReviewId ? "Update" : "Submit"}</button>
 
                     {editingReviewId && (
-                      <button type="button" onClick={() => { setEditingReviewId(null); setMyRating(5); setMyComment(""); }}>
+                      <button type="button" onClick={() => { 
+                        setEditingReviewId(null); 
+                        setMyRating(5); 
+                        setMyComment(""); 
+                      }}>
                         Cancel
                       </button>
                     )}
@@ -282,7 +281,6 @@ export default function App() {
           </div>
         </>
       )}
-
     </div>
   );
 }
